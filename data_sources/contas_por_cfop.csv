@@ -1,0 +1,22 @@
+cfop,regime,conta_debito,conta_credito,justificativa_base,confianca
+5101,simples,1.1.3.01.0001,3.1.1.01.0001,CFOP 5101 (Venda de produção do estabelecimento - Simples Nacional),0.85
+5101,presumido,1.1.3.01.0001,3.1.1.01.0002,CFOP 5101 (Venda de produção do estabelecimento - Lucro Presumido),0.85
+5101,real,1.1.3.01.0001,3.1.1.01.0003,CFOP 5101 (Venda de produção do estabelecimento - Lucro Real),0.85
+5102,*,1.1.3.01.0001,3.1.1.02.0001,CFOP 5102 (Venda de mercadorias adquiridas ou recebidas de terceiros em operação interna),0.80
+6101,*,1.1.3.01.0001,3.1.1.01.0004,CFOP 6101 (Venda de produção do estabelecimento em operação interestadual),0.80
+6102,*,1.1.3.01.0001,3.1.1.02.0002,CFOP 6102 (Venda de mercadorias adquiridas ou recebidas de terceiros em operação interestadual),0.80
+1101,*,1.1.2.01.0001,2.1.2.01.0001,CFOP 1101 (Compra para industrialização em operação interna),0.78
+1102,*,1.1.2.02.0001,2.1.2.01.0001,CFOP 1102 (Compra para comercialização em operação interna),0.78
+2101,*,1.1.2.01.0001,2.1.2.01.0001,CFOP 2101 (Compra para industrialização em operação interestadual),0.78
+2102,*,1.1.2.02.0001,2.1.2.01.0001,CFOP 2102 (Compra para comercialização em operação interestadual),0.78
+1556,*,1.1.2.02.0001,3.1.9.01.0001,CFOP 1556 (Compra de mercadorias recebidas em bonificação),0.75
+2556,*,1.1.2.02.0001,3.1.9.01.0001,CFOP 2556 (Compra de mercadorias recebidas em bonificação - interestadual),0.75
+1201,*,1.1.2.02.0001,1.1.3.01.0001,CFOP 1201 (Devolução de venda de produção do estabelecimento),0.80
+2201,*,1.1.2.02.0001,1.1.3.01.0001,CFOP 2201 (Devolução de venda de produção do estabelecimento - interestadual),0.80
+1202,*,1.1.2.02.0001,1.1.3.01.0001,CFOP 1202 (Devolução de venda de mercadorias adquiridas de terceiros),0.80
+2202,*,1.1.2.02.0001,1.1.3.01.0001,CFOP 2202 (Devolução de venda de mercadorias adquiridas de terceiros - interestadual),0.80
+5933,*,3.1.7.01.0001,1.1.3.01.0001,CFOP 5933 (Prestação de serviço tributado pelo ISSQN em operação interna),0.85
+6933,*,3.1.7.01.0001,1.1.3.01.0001,CFOP 6933 (Prestação de serviço tributado pelo ISSQN em operação interestadual),0.85
+5656,*,1.1.3.01.0001,3.1.4.01.0001,CFOP 5656 (Venda de mercadoria adquirida ou recebida de terceiros destinada à exportação),0.90
+6656,*,1.1.3.01.0001,3.1.4.01.0001,CFOP 6656 (Venda de mercadoria adquirida ou recebida de terceiros destinada à exportação - interestadual),0.90
+5405,*,1.1.3.01.0001,3.1.4.01.0001,Vendas para o Cadu,0.95

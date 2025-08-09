@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<nfeProc>
+  <NFe>
+    <infNFe>
+      <ide>
+        <mod>55</mod>
+      </ide>
+      <emit>
+        <enderEmit>
+          <UF>SP</UF>
+        </enderEmit>
+      </emit>
+      <dest>
+        <enderDest>
+          <UF>SP</UF>
+        </enderDest>
+      </dest>
+      <det nItem="1">
+        <prod>
+          <xProd>Produto A</xProd>
+          <NCM>12345678</NCM>
+          <CFOP>5102</CFOP>
+          <vProd>10.00</vProd>
+        </prod>
+      </det>
+      <det nItem="2">
+        <prod>
+          <xProd>Produto B</xProd>
+          <NCM>87654321</NCM>
+          <CFOP>5102</CFOP>
+          <vProd>5.00</vProd>
+        </prod>
+      </det>
+      <total>
+        <ICMSTot>
+          <vNF>15.00</vNF>
+        </ICMSTot>
+      </total>
+    </infNFe>
+  </NFe>
+</nfeProc>
+
+

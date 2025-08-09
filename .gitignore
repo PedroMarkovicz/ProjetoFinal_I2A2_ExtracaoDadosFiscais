@@ -1,0 +1,68 @@
+# =========================
+# Python / General
+# =========================
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Byte-compiled / cache
+.pytest_cache/
+.mypy_cache/
+.pyre/
+.pyright/
+.dmypy.json
+
+# Coverage / testing
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+.tox/
+
+# Build / packaging
+build/
+dist/
+*.egg-info/
+.eggs/
+pip-wheel-metadata/
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+.python-version
+
+# Editors / IDE
+.vscode/
+.idea/
+*.code-workspace
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs and runtime artifacts
+logs/
+*.log
+
+# Streamlit
+.streamlit/secrets.toml
+.streamlit/**/cache/
+
+# Local env/config
+.env
+.env.*
+
+# Node (if present for frontend experiments)
+node_modules/
+
+# Misc
+*.bak
+*.swp
+*.swo
+
+# Keep sample data tracked: do NOT ignore data/exemplos/
+# (Add other data folders here if you want to ignore them)
+
+

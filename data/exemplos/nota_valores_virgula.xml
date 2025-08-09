@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<nfeProc>
+  <NFe>
+    <infNFe>
+      <ide>
+        <mod>55</mod>
+      </ide>
+      <emit>
+        <enderEmit>
+          <UF>PR</UF>
+        </enderEmit>
+      </emit>
+      <dest>
+        <enderDest>
+          <UF>PR</UF>
+        </enderDest>
+      </dest>
+      <det nItem="1">
+        <prod>
+          <xProd>Valores com vírgula</xProd>
+          <NCM>55556666</NCM>
+          <CFOP>5102</CFOP>
+          <vProd>123,45</vProd>
+        </prod>
+      </det>
+      <total>
+        <ICMSTot>
+          <vNF>123,45</vNF>
+        </ICMSTot>
+      </total>
+    </infNFe>
+  </NFe>
+</nfeProc>
+
+

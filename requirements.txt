@@ -1,0 +1,14 @@
+pydantic
+xmltodict
+typer
+pytest
+langgraph 
+langchain-core
+fastapi
+uvicorn[standard]
+python-multipart
+streamlit
+requests
+
+
+
