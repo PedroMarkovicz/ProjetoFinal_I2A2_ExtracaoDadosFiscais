@@ -2,7 +2,8 @@ from pathlib import Path
 
 import pytest
 
-from src.agents.xml_parser_agent import parse_xml
+from src.agents.xml_parser_agent import parse_xml, XmlParseError
+from src.domain.models import UfEnum as UF
 
 
 BASE = Path("data/exemplos")
@@ -11,8 +12,8 @@ BASE = Path("data/exemplos")
 def test_parse_minimo():
     payload = parse_xml(BASE / "nota_minima.xml")
     assert payload.cfop == "5102"
-    assert payload.emitente_uf == "SP"
-    assert payload.destinatario_uf == "SP"
+    assert payload.emitente_uf == UF.SP
+    assert payload.destinatario_uf == UF.SP
     assert payload.valor_total == 100.00
     assert len(payload.itens) == 1
     assert payload.itens[0].descricao.lower().startswith("camiseta")
@@ -38,6 +39,9 @@ def test_parse_varios_itens(tmp_path: Path):
     assert len(payload.itens) == 2
     assert payload.itens[0].valor == 10.0
     assert payload.itens[1].valor == 5.0
+    # NCMs inválidos (123, 456) devem ser sanitizados para None
+    assert payload.itens[0].ncm is None
+    assert payload.itens[1].ncm is None
 
 
 def test_parse_campos_faltando(tmp_path: Path):
@@ -52,7 +56,28 @@ def test_parse_campos_faltando(tmp_path: Path):
         </infNFe></NFe></nfeProc>""",
         encoding="utf-8",
     )
-    with pytest.raises(ValueError):
+    with pytest.raises(XmlParseError):
         parse_xml(xml)
+
+
+def test_parse_sem_nfeProc(tmp_path: Path):
+    """Garante que o parser funciona quando o XML não possui o nó raiz nfeProc."""
+    xml = tmp_path / "nfe_sem_nfeproc.xml"
+    xml.write_text(
+        """<?xml version=\"1.0\" encoding=\"UTF-8\"?>
+        <NFe><infNFe>
+          <emit><enderEmit><UF>SP</UF></enderEmit></emit>
+          <dest><enderDest><UF>SP</UF></enderDest></dest>
+          <det nItem=\"1\"><prod><xProd>Produto X</xProd><NCM>61091000</NCM><CFOP>5102</CFOP><vProd>25</vProd></prod></det>
+          <total><ICMSTot><vNF>25</vNF></ICMSTot></total>
+        </infNFe></NFe>""",
+        encoding="utf-8",
+    )
+    payload = parse_xml(xml)
+    assert payload.cfop == "5102"
+    assert payload.emitente_uf == UF.SP
+    assert payload.destinatario_uf == UF.SP
+    assert payload.valor_total == 25.0
+    assert len(payload.itens) == 1
 
 
