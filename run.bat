@@ -16,8 +16,8 @@ if defined ESC (
 )
 
 rem ---------- parametros ----------
-set "DIR_XML=%~1"
-if "%DIR_XML%"=="" set "DIR_XML=data\exemplos"
+set "DIR_IN=%~1"
+if "%DIR_IN%"=="" set "DIR_IN=data\exemplos\pdf"
 
 set "REGIME=%~2"
 set "LOG_LEVEL=%~3"
@@ -30,7 +30,7 @@ set "SUMMARY=%LOGDIR%\summary.csv"
 
 echo.
 echo %BOLD%================== CONFIG ==================%RESET%
-echo Pasta XML........: %CYAN%%DIR_XML%%RESET%
+echo Pasta entrada....: %CYAN%%DIR_IN%%RESET%
 echo Regime...........: %CYAN%%REGIME%%RESET%
 echo Log level........: %CYAN%%LOG_LEVEL%%RESET%
 echo Logs em..........: %CYAN%%LOGDIR%%RESET%
@@ -51,8 +51,8 @@ set "RUNNER=python -m"
 :RUNNER_OK
 
 rem ---------- validar pasta ----------
-if not exist "%DIR_XML%" (
-  echo %RED%[ERRO]%RESET% Pasta nao existe: "%DIR_XML%"
+if not exist "%DIR_IN%" (
+  echo %RED%[ERRO]%RESET% Pasta nao existe: "%DIR_IN%"
   exit /b 3
 )
 
@@ -67,16 +67,28 @@ rem não passar --regime * para o CLI
 set "REGIME_PARAM="
 if not "%REGIME%"=="" if /I not "%REGIME%"=="*" set "REGIME_PARAM=--regime %REGIME%"
 
-echo Procurando XMLs em "%CYAN%%DIR_XML%%RESET%" (recursivo)...
+echo Procurando XMLs/PDFs em "%CYAN%%DIR_IN%%RESET%" (recursivo)...
 echo.
 
 rem ---------- loop principal ----------
-for /R "%DIR_XML%" %%F in (*.xml) do (
+for /R "%DIR_IN%" %%F in (*.xml *.pdf) do (
   set /a TOTAL+=1
   echo %BOLD%========= %%~nxF =========%RESET%
 
   rem 1a execucao
-  cmd /c %RUNNER% src.app.run_graph --xml "%%~fF" --log-level %LOG_LEVEL% %REGIME_PARAM% > "%TEMP%\run_graph_output.txt"
+  set "EXT=%%~xF"
+  if /I "!EXT!"==".xml" (
+    cmd /c %RUNNER% src.app.run_graph --xml "%%~fF" --log-level %LOG_LEVEL% %REGIME_PARAM% > "%TEMP%\run_graph_output.txt"
+  ) else (
+    if /I "!EXT!"==".pdf" (
+      cmd /c %RUNNER% src.app.run_graph --pdf "%%~fF" --log-level %LOG_LEVEL% %REGIME_PARAM% > "%TEMP%\run_graph_output.txt"
+    ) else (
+      echo %YELLOW%[SKIP]%RESET% Extensao nao suportada: !EXT!
+      rem apenas segue para o proximo arquivo
+      goto :AFTER_COMMANDS
+    )
+  )
+
   set "EC=!ERRORLEVEL!"
   type "%TEMP%\run_graph_output.txt" 2>nul
   copy /Y "%TEMP%\run_graph_output.txt" "%LOGDIR%\%%~nF.json" >nul 2>&1
@@ -109,11 +121,12 @@ for /R "%DIR_XML%" %%F in (*.xml) do (
     " if($mot){ $mot = ($mot -replace '\r?\n',' ' -replace ',',';') } else { $mot='' } ; " ^
     " '{0},{1},{2},{3}' -f '%%~nxF.json',$ok,$nr,$mot | Out-File -FilePath '%SUMMARY%' -Append -Encoding utf8 }"
 
+  :AFTER_COMMANDS
   echo.
 )
 
 if %TOTAL%==0 (
-  echo %YELLOW%Nenhum arquivo *.xml encontrado em "%DIR_XML%".%RESET%
+  echo %YELLOW%Nenhum arquivo *.xml ou *.pdf encontrado em "%DIR_IN%".%RESET%
   exit /b 4
 )
 
@@ -134,12 +147,12 @@ exit /b 0
 
 rem =========================================================
 rem ============= SUB-ROTINA: HANDLE_REVIEW ================
-rem args: %1 = caminho XML completo, %2 = base name (sem ext)
+rem args: %1 = caminho arquivo completo, %2 = base name (sem ext)
 :HANDLE_REVIEW
 setlocal EnableExtensions EnableDelayedExpansion
 set "XMLFULL=%~1"
 set "BASENAME=%~2"
-echo %YELLOW%[REVIEW]%RESET% Revisao humana necessaria para "!BASENAME!.xml"
+echo %YELLOW%[REVIEW]%RESET% Revisao humana necessaria para "!BASENAME!"
 echo.
 
 rem Perguntas (sem CFOP)
@@ -166,7 +179,12 @@ set "REGIME_ARG="
 if not "!REGIME!"=="" if /I not "!REGIME!"=="*" set "REGIME_ARG=--regime !REGIME!"
 
 echo Reexecutando com revisao: "!RJSON!"
-cmd /c %RUNNER% src.app.run_graph --xml "!XMLFULL!" --log-level %LOG_LEVEL% !REGIME_ARG! --review-json "!RJSON!" > "%TEMP%\run_graph_output.txt"
+set "EXT2=%~x1"
+if /I "!EXT2!"==".xml" (
+  cmd /c %RUNNER% src.app.run_graph --xml "!XMLFULL!" --log-level %LOG_LEVEL% !REGIME_ARG! --review-json "!RJSON!" > "%TEMP%\run_graph_output.txt"
+) else (
+  cmd /c %RUNNER% src.app.run_graph --pdf "!XMLFULL!" --log-level %LOG_LEVEL% !REGIME_ARG! --review-json "!RJSON!" > "%TEMP%\run_graph_output.txt"
+)
 set "EC=!ERRORLEVEL!"
 type "%TEMP%\run_graph_output.txt" 2>nul
 copy /Y "%TEMP%\run_graph_output.txt" "%LOGDIR%\!BASENAME!.json" >nul 2>&1

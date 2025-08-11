@@ -11,6 +11,7 @@ logger = logging.getLogger(__name__)
 class WorkflowState(TypedDict, total=False):
     # inputs
     xml_path: str
+    pdf_path: str
     regime_tributario: str  # "simples" | "presumido" | "real" (opcional)
 
     # outputs do parser

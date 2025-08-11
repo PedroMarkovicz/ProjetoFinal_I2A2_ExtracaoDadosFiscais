@@ -12,7 +12,7 @@ from typing import Any, Dict
 import typer
 from src.workflow.graph import build_graph
 
-app = typer.Typer(help="CLI para executar o grafo (XmlParserAgent + ClassificadorContábil).")
+app = typer.Typer(help="CLI para executar o grafo (Parser XML/PDF + Classificador Contábil).")
 
 class LogLevel(str, Enum):
     DEBUG = "DEBUG"
@@ -45,7 +45,8 @@ def _load_review_json(path: str) -> Dict[str, Any]:
 
 @app.command()
 def run(
-    xml: str = typer.Option(..., "--xml", help="Caminho do arquivo XML da NF-e"),
+    xml: str | None = typer.Option(None, "--xml", help="Caminho do arquivo XML da NF-e"),
+    pdf: str | None = typer.Option(None, "--pdf", help="Caminho do arquivo PDF (DANFE)"),
     regime: RegimeTributario | None = typer.Option(None, "--regime", help="Regime tributário (opcional)"),
     review_json: str | None = typer.Option(None, "--review-json", help="Caminho de um JSON com human_review_input"),
     log_level: LogLevel = typer.Option(LogLevel.INFO, "--log-level", help="Nível de log"),
@@ -55,7 +56,16 @@ def run(
 
     graph = build_graph()
 
-    state: Dict[str, Any] = {"xml_path": xml}
+    if not xml and not pdf:
+        raise typer.BadParameter("Informe --xml ou --pdf")
+    if xml and pdf:
+        raise typer.BadParameter("Use apenas um dos parâmetros: --xml ou --pdf")
+
+    state: Dict[str, Any] = {}
+    if xml:
+        state["xml_path"] = xml
+    if pdf:
+        state["pdf_path"] = pdf
     if regime is not None:
         state["regime_tributario"] = regime.value
     if review_json:

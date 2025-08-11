@@ -389,18 +389,33 @@ with st.container(border=True):
     </div>
     """, unsafe_allow_html=True)
     
-    xml_file = st.file_uploader(
-        "Arquivo XML da NF-e",
-        type=["xml"],
-        accept_multiple_files=False,
-        help="Formatos aceitos: .xml | A IA processará automaticamente para extrair CFOP, UFs, valores e classificar contabilmente.",
-        label_visibility="collapsed"
-    )
+    upload_tab_xml, upload_tab_pdf = st.tabs(["XML", "PDF (DANFE)"])
+
+    with upload_tab_xml:
+        xml_file = st.file_uploader(
+            "Arquivo XML da NF-e",
+            type=["xml"],
+            accept_multiple_files=False,
+            help="Formatos aceitos: .xml",
+            label_visibility="collapsed"
+        )
+
+    with upload_tab_pdf:
+        pdf_file = st.file_uploader(
+            "Arquivo PDF (DANFE)",
+            type=["pdf"],
+            accept_multiple_files=False,
+            help="Formatos aceitos: .pdf",
+            label_visibility="collapsed"
+        )
     
     # Informações sobre o arquivo selecionado
     if xml_file:
         file_details = f"📄 **{xml_file.name}** | 📏 {xml_file.size:,} bytes"
         st.markdown(f'<div style="background: #f0fdf4; padding: 0.75rem; border-radius: 0.5rem; border-left: 4px solid #22c55e; margin: 1rem 0;">{file_details}</div>', unsafe_allow_html=True)
+    if pdf_file:
+        file_details = f"🧾 **{pdf_file.name}** | 📏 {pdf_file.size:,} bytes"
+        st.markdown(f'<div style="background: #eef2ff; padding: 0.75rem; border-radius: 0.5rem; border-left: 4px solid #6366f1; margin: 1rem 0;">{file_details}</div>', unsafe_allow_html=True)
 
     # Botão de análise melhorado
     col1, col2, col3 = st.columns([1, 2, 1])
@@ -409,17 +424,27 @@ with st.container(border=True):
             "🚀 Analisar com IA", 
             type="primary", 
             use_container_width=True, 
-            disabled=(xml_file is None),
+            disabled=(xml_file is None and pdf_file is None),
             help="Clique para iniciar o processamento inteligente da NF-e"
         )
 
     if analyze_button:
-        st.session_state.uploaded_bytes = xml_file.getvalue()
-        st.session_state.uploaded_name = xml_file.name
+        target_is_pdf = bool(pdf_file and not xml_file)
+        if target_is_pdf:
+            st.session_state.uploaded_bytes = pdf_file.getvalue()
+            st.session_state.uploaded_name = pdf_file.name
+        else:
+            st.session_state.uploaded_bytes = xml_file.getvalue()
+            st.session_state.uploaded_name = xml_file.name
         st.session_state.last_result = None # Limpa resultado anterior antes de nova análise
 
         try:
-            files = { "xml_file": (st.session_state.uploaded_name, io.BytesIO(st.session_state.uploaded_bytes), "application/xml") }
+            if target_is_pdf:
+                files = { "pdf_file": (st.session_state.uploaded_name, io.BytesIO(st.session_state.uploaded_bytes), "application/pdf") }
+                endpoint = f"{backend_url}/classificar/pdf"
+            else:
+                files = { "xml_file": (st.session_state.uploaded_name, io.BytesIO(st.session_state.uploaded_bytes), "application/xml") }
+                endpoint = f"{backend_url}/classificar/xml"
             
             # Progress bar com etapas
             progress_bar = st.progress(0)
@@ -434,7 +459,7 @@ with st.container(border=True):
             status_text.text("⚡ Classificando contabilmente...")
             progress_bar.progress(75)
             
-            resp = requests.post(f"{backend_url}/classificar/xml", files=files, timeout=60)
+            resp = requests.post(endpoint, files=files, timeout=120)
             
             progress_bar.progress(100)
             status_text.text("✅ Análise concluída!")
@@ -705,10 +730,14 @@ if st.session_state.get("last_result"):
                             "justificativa_base": justificativa_base.strip(),
                             "confianca": float(confianca),
                         }
-                        files = {
-                            "xml_file": (st.session_state.uploaded_name, io.BytesIO(st.session_state.uploaded_bytes), "application/xml"),
-                            "human_review_input": (None, json.dumps(hr_data), "application/json"),
-                        }
+                        files = {}
+                        if st.session_state.get("uploaded_name", "").lower().endswith(".pdf"):
+                            files["pdf_file"] = (st.session_state.uploaded_name, io.BytesIO(st.session_state.uploaded_bytes), "application/pdf")
+                            review_endpoint = f"{backend_url}/classificar/review/pdf"
+                        else:
+                            files["xml_file"] = (st.session_state.uploaded_name, io.BytesIO(st.session_state.uploaded_bytes), "application/xml")
+                            review_endpoint = f"{backend_url}/classificar/review/xml"
+                        files["human_review_input"] = (None, json.dumps(hr_data), "application/json")
                         
                         try:
                             # Progress da revisão
@@ -721,7 +750,7 @@ if st.session_state.get("last_result"):
                             status_review.text("🤖 IA aprendendo com sua classificação...")
                             progress_review.progress(70)
                             
-                            resp = requests.post(f"{backend_url}/classificar/review/xml", files=files, timeout=60)
+                            resp = requests.post(review_endpoint, files=files, timeout=120)
                             
                             progress_review.progress(100)
                             status_review.text("✅ Revisão aplicada!")

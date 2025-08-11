@@ -7,6 +7,7 @@ import logging
 from typing import Dict, Any
 
 from src.agents.xml_parser_agent import parse_xml, XmlParseError
+from src.agents.pdf_parser_agent import parse_pdf
 from src.workflow.state import WorkflowState
 from src.agents.classificador_contabil_agent import (
     classificar_contabil,
@@ -21,20 +22,32 @@ logger = logging.getLogger(__name__)
 
 def xml_parser_node(state: WorkflowState) -> WorkflowState:
     logger.debug("xml_parser_node recebido estado: %s", state)
+    pdf_path = state.get("pdf_path")
+    if pdf_path:
+        try:
+            payload = parse_pdf(pdf_path)
+            return {"ok": True, "payload": payload.model_dump()}
+        except XmlParseError as e:
+            logger.warning("Falha conhecida no parsing PDF: %s", e)
+            return {"ok": False, "error": str(e)}
+        except Exception as e:
+            logger.exception("Erro inesperado no pdf_parser_node")
+            return {"ok": False, "error": f"Erro inesperado (PDF): {e}"}
+
     xml_path = state.get("xml_path")
     if not xml_path:
-        logger.error("xml_path não fornecido no estado")
-        return {"ok": False, "error": "xml_path não fornecido"}
+        logger.error("Entrada ausente: informe pdf_path ou xml_path")
+        return {"ok": False, "error": "Entrada ausente: informe pdf_path ou xml_path"}
 
     try:
         payload = parse_xml(xml_path)
         return {"ok": True, "payload": payload.model_dump()}
     except XmlParseError as e:
-        logger.warning("Falha conhecida no parsing: %s", e)
+        logger.warning("Falha conhecida no parsing XML: %s", e)
         return {"ok": False, "error": str(e)}
     except Exception as e:
         logger.exception("Erro inesperado no xml_parser_node")
-        return {"ok": False, "error": f"Erro inesperado: {e}"}
+        return {"ok": False, "error": f"Erro inesperado (XML): {e}"}
 
 def classificador_contabil_node(state: WorkflowState) -> WorkflowState:
     logger.debug("classificador_contabil_node recebido estado: %s", state)

@@ -41,6 +41,10 @@ class ClassificarByPathRequest(BaseModel):
     xml_path: str = Field(..., description="Caminho completo do arquivo XML da NF-e")
 
 
+class ClassificarByPathPdfRequest(BaseModel):
+    pdf_path: str = Field(..., description="Caminho completo do arquivo PDF (DANFE)")
+
+
 class HumanReviewInput(BaseModel):
     cfop: str = Field(min_length=4, max_length=4)
     regime: str = Field(default="*", description='simples|presumido|real|*')
@@ -113,17 +117,23 @@ class UpsertMappingRequest(BaseModel):
 # ----------------------------------------------------
 # Helpers
 # ----------------------------------------------------
-def _invoke_graph(xml_path: str, human_review_input: Dict[str, Any] | None = None) -> Dict[str, Any]:
+def _invoke_graph(xml_path: str | None = None,
+                  pdf_path: str | None = None,
+                  human_review_input: Dict[str, Any] | None = None) -> Dict[str, Any]:
     """
     Invoca o grafo exatamente como o CLI faz.
     - Etapa 1: sem 'human_review_input'
     - Etapa 2: com 'human_review_input' (se necessário)
     """
-    state: Dict[str, Any] = {"xml_path": xml_path}
+    state: Dict[str, Any] = {}
+    if xml_path:
+        state["xml_path"] = xml_path
+    if pdf_path:
+        state["pdf_path"] = pdf_path
     if human_review_input:
         state["human_review_input"] = human_review_input
 
-    logger.info("Invocando grafo | xml=%s has_hr=%s", xml_path, bool(human_review_input))
+    logger.info("Invocando grafo | xml=%s pdf=%s has_hr=%s", xml_path, pdf_path, bool(human_review_input))
     return GRAPH.invoke(state)
 
 
@@ -148,8 +158,23 @@ def classificar_by_path(payload: ClassificarByPathRequest) -> Dict[str, Any]:
     if not xmlp.exists():
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Arquivo não encontrado: {xmlp}")
 
-    result = _invoke_graph(str(xmlp))
+    result = _invoke_graph(xml_path=str(xmlp))
     return result
+@app.post(
+    "/classificar/pdf_path",
+    tags=["classificacao"],
+    summary="Classifica informando caminho do PDF (somente pdf_path)"
+)
+def classificar_pdf_by_path(payload: ClassificarByPathPdfRequest) -> Dict[str, Any]:
+    pdfp = Path(payload.pdf_path)
+    if not pdfp.exists():
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Arquivo não encontrado: {pdfp}")
+    if pdfp.suffix.lower() != ".pdf":
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Forneça um arquivo .pdf")
+
+    result = _invoke_graph(pdf_path=str(pdfp))
+    return result
+
 
 
 @app.post(
@@ -173,7 +198,35 @@ async def classificar_by_upload(
         raise HTTPException(status_code=500, detail=f"Falha ao salvar XML temporário: {e}")
 
     try:
-        result = _invoke_graph(str(tmp_path))
+        result = _invoke_graph(xml_path=str(tmp_path))
+        return result
+    finally:
+        try:
+            tmp_path.unlink(missing_ok=True)
+        except Exception:
+            pass
+
+@app.post(
+    "/classificar/pdf",
+    tags=["classificacao"],
+    summary="Classifica enviando o PDF (DANFE) via upload"
+)
+async def classificar_pdf_by_upload(
+    pdf_file: UploadFile = File(..., description="Arquivo .pdf do DANFE")
+) -> Dict[str, Any]:
+    if not pdf_file.filename.lower().endswith(".pdf"):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Envie um arquivo .pdf")
+
+    try:
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
+            content = await pdf_file.read()
+            tmp.write(content)
+            tmp_path = Path(tmp.name)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Falha ao salvar PDF temporário: {e}")
+
+    try:
+        result = _invoke_graph(pdf_path=str(tmp_path))
         return result
     finally:
         try:
@@ -196,7 +249,7 @@ def review_by_path(body: ReviewByPathRequest) -> Dict[str, Any]:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Arquivo não encontrado: {xmlp}")
 
     # O grafo valida, faz upsert no CSV e aplica classificação final
-    result = _invoke_graph(str(xmlp), human_review_input=body.review.model_dump())
+    result = _invoke_graph(xml_path=str(xmlp), human_review_input=body.review.model_dump())
     return result
 
 
@@ -235,7 +288,68 @@ async def review_by_upload(
         raise HTTPException(status_code=500, detail=f"Falha ao salvar XML temporário: {e}")
 
     try:
-        result = _invoke_graph(str(tmp_path), human_review_input=hr)
+        result = _invoke_graph(xml_path=str(tmp_path), human_review_input=hr)
+        return result
+    finally:
+        try:
+            tmp_path.unlink(missing_ok=True)
+        except Exception:
+            pass
+
+
+class ReviewByPathPdfRequest(BaseModel):
+    pdf_path: str
+    review: HumanReviewInput
+
+
+@app.post(
+    "/classificar/review/pdf_path",
+    tags=["revisao"],
+    summary="Aplica revisão humana informando caminho do PDF"
+)
+def review_pdf_by_path(body: ReviewByPathPdfRequest) -> Dict[str, Any]:
+    pdfp = Path(body.pdf_path)
+    if not pdfp.exists():
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Arquivo não encontrado: {pdfp}")
+    if pdfp.suffix.lower() != ".pdf":
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Forneça um arquivo .pdf")
+
+    result = _invoke_graph(pdf_path=str(pdfp), human_review_input=body.review.model_dump())
+    return result
+
+
+@app.post(
+    "/classificar/review/pdf",
+    tags=["revisao"],
+    summary="Aplica revisão humana enviando o PDF via upload + JSON de revisão"
+)
+async def review_pdf_by_upload(
+    pdf_file: UploadFile = File(..., description="Arquivo .pdf do DANFE"),
+    human_review_input: str = File(..., description="JSON com cfop, regime, conta_debito, conta_credito, justificativa_base, confianca")
+) -> Dict[str, Any]:
+    if not pdf_file.filename.lower().endswith(".pdf"):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Envie um arquivo .pdf")
+
+    try:
+        hr = json.loads(human_review_input)
+        if isinstance(hr, dict) and "human_review_input" in hr:
+            hr = hr["human_review_input"]
+        if not isinstance(hr, dict):
+            raise ValueError("Estrutura inválida")
+        hr = HumanReviewInput(**hr).model_dump()
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"human_review_input inválido: {e}")
+
+    try:
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
+            content = await pdf_file.read()
+            tmp.write(content)
+            tmp_path = Path(tmp.name)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Falha ao salvar PDF temporário: {e}")
+
+    try:
+        result = _invoke_graph(pdf_path=str(tmp_path), human_review_input=hr)
         return result
     finally:
         try:
