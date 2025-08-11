@@ -1,4 +1,4 @@
-## Agentes Contábeis — NF‑e Parser, Classificação e UI
+## Agentes Contábeis — NF‑e Parser (XML/PDF), Classificação e UI
 
 [![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-005571?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
@@ -6,7 +6,7 @@
 [![uv](https://img.shields.io/badge/uv-Dependency%20Manager-4c1)](https://github.com/astral-sh/uv)
 [![pytest](https://img.shields.io/badge/tests-pytest-0A9EDC?logo=pytest&logoColor=white)](https://pytest.org/)
 
-Plataforma em Python para ler NF‑e (XML), extrair um `NFePayload` validado com Pydantic, executar um fluxo com LangGraph, expor endpoints FastAPI e disponibilizar uma UI moderna em Streamlit. Inclui CLIs, exemplos de XML e automação via `run.bat`.
+Plataforma em Python para ler NF‑e por XML ou PDF (DANFE), extrair um `NFePayload` validado com Pydantic, executar um fluxo com LangGraph, expor endpoints FastAPI e disponibilizar uma UI moderna em Streamlit. Agora inclui extração via LLM para PDFs, suporte a múltiplos provedores (OpenAI, Gemini, Groq), CLIs, exemplos e automação via `run.bat` (XML e PDF).
 
 ---
 
@@ -25,7 +25,8 @@ Plataforma em Python para ler NF‑e (XML), extrair um `NFePayload` validado com
 ---
 
 ### Destaques
-- **Parser NF‑e robusto**: uso de `xmltodict` + sanitização pré‑validação.
+- **Parser NF‑e (XML) robusto**: `xmltodict` + sanitização pré‑validação.
+- **Parser NF‑e (PDF/DANFE)**: PyMuPDF para extração de texto (+ OCR opcional via Tesseract) e extração com LLM (LangChain). Suporta provedores OpenAI, Gemini e Groq; saída saneada e validada em `NFePayload`.
 - **Modelos Pydantic**: validação clara de `NFePayload` e `NFeItem`.
 - **Fluxo LangGraph**: estado tipado e execução determinística.
 - **API + UI**: integração FastAPI e Streamlit com experiência aprimorada.
@@ -37,7 +38,9 @@ Plataforma em Python para ler NF‑e (XML), extrair um `NFePayload` validado com
 ```mermaid
 flowchart TD
   A[XML da NF‑e] --> B[XmlParserAgent]
+  P[PDF (DANFE)] --> L[PdfParserAgent (LLM)]
   B --> C{Validação Pydantic}
+  L --> C
   C -->|ok| D[NFePayload]
   C -->|falha| E[Erro/Log]
   D --> F[Workflow LangGraph]
@@ -94,7 +97,8 @@ uv pip sync requirements.txt
 |---|---|
 | Testes | `uv run -m pytest -q` |
 | Parser simples (CLI) | `uv run -m src.app.parse_cli --xml data/exemplos/nota_minima.xml` |
-| Workflow LangGraph | `uv run -m src.app.run_graph --xml data/exemplos/nota_minima.xml --log-level info` |
+| Workflow LangGraph (XML) | `uv run -m src.app.run_graph --xml data/exemplos/nota_minima.xml --log-level info` |
+| Workflow LangGraph (PDF) | `uv run -m src.app.run_graph --pdf data/exemplos/pdf/3524036...8397-nfe.pdf --log-level info` |
 | Informar regime (opcional) | `--regime simples` (não use `*`) |
 | Revisão humana (opcional) | `--human-review-json caminho\revisao.json` |
 | API FastAPI | `uv run uvicorn src.api.main:app --reload` |
@@ -104,12 +108,29 @@ No painel lateral da UI, configure a URL do backend (ex.: `http://127.0.0.1:8000
 
 ---
 
+### Endpoints principais (API)
+
+Classificar por caminho:
+- `POST /classificar/path` → XML via caminho `xml_path`
+- `POST /classificar/pdf_path` → PDF via caminho `pdf_path`
+
+Classificar por upload:
+- `POST /classificar/xml` → upload de `xml_file`
+- `POST /classificar/pdf` → upload de `pdf_file`
+
+Revisão humana por caminho/upload (mesma estrutura de JSON `human_review_input`):
+- `POST /classificar/review/path` (XML) | `POST /classificar/review/pdf_path` (PDF)
+- `POST /classificar/review/xml` (upload XML) | `POST /classificar/review/pdf` (upload PDF)
+
+---
+
 ## Estrutura do projeto
 ```text
 .
 ├─ src/
 │  ├─ agents/
 │  │  ├─ xml_parser_agent.py
+│  │  ├─ pdf_parser_agent.py
 │  │  └─ classificador_contabil_agent.py
 │  ├─ api/
 │  │  └─ main.py
@@ -129,6 +150,24 @@ No painel lateral da UI, configure a URL do backend (ex.: `http://127.0.0.1:8000
 ├─ run.bat
 └─ .gitignore
 ```
+
+---
+
+## LLM e .env
+
+O parser de PDF usa LLM via LangChain. Configure via `.env` (carregado automaticamente):
+
+- `PDF_LLM_PROVIDER` = `openai` | `gemini` | `groq` (default: `openai`)
+- Chaves por provedor: `OPENAI_API_KEY` | `GOOGLE_API_KEY` | `GROQ_API_KEY`
+- `PDF_LLM_MODEL` (defaults):
+  - openai: `gpt-4o-mini`
+  - gemini: `gemini-1.5-pro`
+  - groq: `llama-3.1-70b-versatile`
+- `PDF_LLM_TEMPERATURE` (default: `0.0`)
+
+Observações para PDF:
+- OCR automático (quando o PDF não tem camada de texto). Requer Tesseract instalado no SO.
+- A saída da LLM é saneada antes de validar (`cfop` 4 dígitos, `UF` upper, `NCM` inválido → `null`, números normalizados).
 
 ---
 
@@ -155,8 +194,8 @@ Execute:
 ./run.bat
 ```
 O script:
-- Busca XMLs em `data/exemplos/` (recursivo)
-- Executa o workflow para cada arquivo
+- Busca XMLs e PDFs em `data/exemplos/` (recursivo)
+- Executa o workflow para cada arquivo (usa `--xml` ou `--pdf` conforme a extensão)
 - Salva logs/JSONs em `logs/`
 - Gera `logs/summary.csv` (`ok`, `needs_review`, `reason`)
 - Inicia loop de revisão humana quando necessário (sem CFOP; pergunta regime/contas)
@@ -168,6 +207,7 @@ O script:
 - Se faltar dependência no `pytest` (ex.: `pluggy`), rode `uv pip sync requirements.txt`.
 - No `run.bat`, pipes `|` e parênteses estão escapados (PowerShell).
 - Se mudar a porta do backend, atualize a URL na UI.
+- PDF/LLM: verifique as chaves (`OPENAI_API_KEY`/`GOOGLE_API_KEY`/`GROQ_API_KEY`) e o `PDF_LLM_PROVIDER`. Para OCR, instale Tesseract e garanta que está no PATH.
 
 ---
 
