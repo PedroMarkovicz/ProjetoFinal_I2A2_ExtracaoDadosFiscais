@@ -37,17 +37,17 @@ Plataforma em Python para ler NF‑e por XML ou PDF (DANFE), extrair um `NFePayl
 ### Arquitetura (visão rápida)
 ```mermaid
 flowchart TD
-  A[XML da NF‑e] --> B[XmlParserAgent]
-  P[PDF (DANFE)] --> L[PdfParserAgent (LLM)]
-  B --> C{Validação Pydantic}
+  A["XML da NF-e"] --> B["XmlParserAgent"]
+  P["PDF (DANFE)"] --> L["PdfParserAgent (LLM)"]
+  B --> C{"Validação Pydantic"}
   L --> C
-  C -->|ok| D[NFePayload]
-  C -->|falha| E[Erro/Log]
-  D --> F[Workflow LangGraph]
-  F --> G[Resultado]
-  G --> H{Needs Review?}
-  H -->|sim| I[Input Humano opcional]
-  H -->|não| J[Saída Final]
+  C -->|ok| D["NFePayload"]
+  C -->|falha| E["Erro/Log"]
+  D --> F["Workflow LangGraph"]
+  F --> G["Resultado"]
+  G --> H{"Needs Review?"}
+  H -->|sim| I["Input Humano opcional"]
+  H -->|não| J["Saída Final"]
 ```
 
 ---
