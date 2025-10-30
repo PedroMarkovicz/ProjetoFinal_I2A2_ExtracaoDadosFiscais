@@ -1,4 +1,6 @@
 <div align="center">
+    
+<img src="logo-agente-aprende.png" alt="Agente Aprende Logo" width="300"/>
 
 ## 🧾 Sistema de Extração de Dados Fiscais
 
