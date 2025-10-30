@@ -457,16 +457,6 @@ O sistema implementa múltiplas camadas de segurança e validação:
 
 ---
 
-## 📚 Recursos Adicionais
-
-### Documentação Técnica
-
-- **Relatório Técnico Completo**: [`relatorio.md`](relatorio.md) / [`relatorio.pdf`](relatorio.pdf)
-- **Especificações do Projeto**: [`project_new_specs.md`](project_new_specs.md)
-- **API Interativa**: http://localhost:8000/docs (após iniciar FastAPI)
-
----
-
 ## 🤝 Contribuindo
 
 Contribuições são bem-vindas! Para contribuir:
