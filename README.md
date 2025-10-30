@@ -1,6 +1,6 @@
 <div align="center">
 
-# # 🧾 Sistema de Extração de Dados Fiscais
+## 🧾 Sistema de Extração de Dados Fiscais
 
 ### Arquitetura Multi-Agente Inteligente para Processamento Automatizado de NF-e
 
@@ -540,7 +540,7 @@ O software é fornecido **"como está"**, sem garantias de qualquer tipo, expres
 
 ---
 
-### 📜 Texto Completo da Licença MIT
+### 📜 Licença MIT
 
 ```
 MIT License
