@@ -1,8 +1,8 @@
 <div align="center">
     
-<img src="logo-agente-aprende.png" alt="Agente Aprende Logo" width="300"/>
-
 ## 🧾 Sistema de Extração de Dados Fiscais
+
+<img src="logo-agente-aprende.png" alt="Agente Aprende Logo" width="300"/>
 
 ### Arquitetura Multi-Agente Inteligente para Processamento Automatizado de NF-e
 
