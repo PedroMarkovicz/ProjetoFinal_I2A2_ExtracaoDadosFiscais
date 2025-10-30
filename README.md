@@ -1,34 +1,28 @@
 <div align="center">
 
-## 🧾 Sistema de Extração de Dados Fiscais
 
-<img src="logo-agente-aprende.png" alt="Agente Aprende Logo" width="200"/>
+  # 🧾 Sistema de Extração de Dados Fiscais
+  <img src="logo-agente-aprende.png" alt="Agente Aprende Logo" width="200"/>
 
-### Arquitetura Multi-Agente Inteligente para Processamento Automatizado de NF-e
+  ### Arquitetura Multi-Agente Inteligente para Processamento Automatizado de NF-e
+  
+  <p>
+    <a href="https://www.python.org/downloads/"><img alt="Python 3.10+" src="https://img.shields.io/badge/python-3.10+-blue.svg"></a>
+    <a href="https://python.langchain.com/"><img alt="LangGraph" src="https://img.shields.io/badge/LangGraph-0.2+-green.svg"></a>
+    <a href="https://fastapi.tiangolo.com/"><img alt="FastAPI" src="https://img.shields.io/badge/FastAPI-0.115+-teal.svg"></a>
+    <a href="https://streamlit.io/"><img alt="Streamlit" src="https://img.shields.io/badge/Streamlit-1.38+-red.svg"></a>
+    <a href="https://opensource.org/licenses/MIT"><img alt="License: MIT" src="https://img.shields.io/badge/License-MIT-yellow.svg"></a>
+  </p>
 
-[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
-[![LangGraph](https://img.shields.io/badge/LangGraph-0.2+-green.svg)](https://python.langchain.com/)
-[![FastAPI](https://img.shields.io/badge/FastAPI-0.115+-teal.svg)](https://fastapi.tiangolo.com/)
-[![Streamlit](https://img.shields.io/badge/Streamlit-1.38+-red.svg)](https://streamlit.io/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+  **Transforme documentos fiscais em lançamentos contábeis através de inteligência artificial**
 
-**Transforme documentos fiscais em lançamentos contábeis através de inteligência artificial**
-
-[Funcionalidades](#-funcionalidades) •
-[Instalação](#-instalação) •
-[Uso](#-uso) •
-[Arquitetura](#-arquitetura-multi-agente) •
-[Licença](#-licença)
-
-</div>
-
-**Transforme documentos fiscais em lançamentos contábeis através de inteligência artificial**
-
-[Funcionalidades](#-funcionalidades) •
-[Instalação](#-instalação) •
-[Uso](#-uso) •
-[Arquitetura](#-arquitetura-multi-agente) •
-[Licença](#-licença)
+  <p>
+    <a href="#-funcionalidades">Funcionalidades</a> •
+    <a href="#-instalação">Instalação</a> •
+    <a href="#-uso">Uso</a> •
+    <a href="#-arquitetura-multi-agente">Arquitetura</a> •
+    <a href="#-licença">Licença</a>
+  </p>
 
 </div>
 
