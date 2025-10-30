@@ -1,8 +1,16 @@
 <div align="center">
-    
+
 ## 🧾 Sistema de Extração de Dados Fiscais
 
-<img src="logo-agente-aprende.png" alt="Agente Aprende Logo" width="300"/>
+<div style="
+  display: inline-block;
+  background: rgba(240, 248, 255, 0.6);
+  padding: 15px 25px;
+  border-radius: 15px;
+  box-shadow: 0 0 8px rgba(0,0,0,0.1);
+">
+  <img src="logo-agente-aprende.png" alt="Agente Aprende Logo" width="180" style="border-radius: 12px;"/>
+</div>
 
 ### Arquitetura Multi-Agente Inteligente para Processamento Automatizado de NF-e
 
@@ -11,6 +19,8 @@
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115+-teal.svg)](https://fastapi.tiangolo.com/)
 [![Streamlit](https://img.shields.io/badge/Streamlit-1.38+-red.svg)](https://streamlit.io/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+</div>
 
 **Transforme documentos fiscais em lançamentos contábeis através de inteligência artificial**
 
