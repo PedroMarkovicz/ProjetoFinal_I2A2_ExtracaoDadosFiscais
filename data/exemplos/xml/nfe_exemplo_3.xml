@@ -1,0 +1,207 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<nfeProc xmlns="http://www.portalfiscal.inf.br/nfe" versao="4.00">
+  <NFe>
+    <infNFe versao="4.00" Id="NFe43251044444444444444550010000000035555555551">
+      <ide>
+        <cUF>43</cUF>
+        <cNF>55555555</cNF>
+        <natOp>Devolucao de Mercadoria</natOp>
+        <mod>55</mod>
+        <serie>1</serie>
+        <nNF>303</nNF>
+        <dhEmi>2025-10-26T16:45:00-03:00</dhEmi>
+        <tpNF>1</tpNF>
+        <idDest>2</idDest>
+        <cMunFG>4314902</cMunFG>
+        <tpImp>1</tpImp>
+        <tpEmis>1</tpEmis>
+        <cDV>1</cDV>
+        <tpAmb>2</tpAmb>
+        <finNFe>4</finNFe>
+        <indFinal>0</indFinal>
+        <indPres>1</indPres>
+        <procEmi>0</procEmi>
+        <verProc>3.0.5</verProc>
+      </ide>
+      <emit>
+        <CNPJ>44444444000122</CNPJ>
+        <xNome>COMERCIAL GAUCHA DE ALIMENTOS LTDA</xNome>
+        <xFant>Gaúcha Alimentos</xFant>
+        <enderEmit>
+          <xLgr>Rua dos Andradas</xLgr>
+          <nro>1234</nro>
+          <xCpl>Galpão 5</xCpl>
+          <xBairro>Centro Histórico</xBairro>
+          <cMun>4314902</cMun>
+          <xMun>Porto Alegre</xMun>
+          <UF>RS</UF>
+          <CEP>90020007</CEP>
+          <cPais>1058</cPais>
+          <xPais>Brasil</xPais>
+          <fone>5133337777</fone>
+        </enderEmit>
+        <IE>096123456789</IE>
+        <CRT>3</CRT>
+      </emit>
+      <dest>
+        <CNPJ>12345678000190</CNPJ>
+        <xNome>TECH DISTRIBUIDORA LTDA</xNome>
+        <enderDest>
+          <xLgr>Avenida Paulista</xLgr>
+          <nro>1500</nro>
+          <xCpl>Conjunto 301</xCpl>
+          <xBairro>Bela Vista</xBairro>
+          <cMun>3550308</cMun>
+          <xMun>São Paulo</xMun>
+          <UF>SP</UF>
+          <CEP>01310100</CEP>
+          <cPais>1058</cPais>
+          <xPais>Brasil</xPais>
+          <fone>1133334444</fone>
+        </enderDest>
+        <indIEDest>1</indIEDest>
+        <IE>123456789012</IE>
+      </dest>
+      <det nItem="1">
+        <prod>
+          <cProd>CAFE-GRAO-1KG</cProd>
+          <cEAN/>
+          <xProd>Café em Grãos Arábica Premium 1KG</xProd>
+          <NCM>09011110</NCM>
+          <CFOP>6202</CFOP>
+          <uCom>KG</uCom>
+          <qCom>50.0000</qCom>
+          <vUnCom>42.00</vUnCom>
+          <vProd>2100.00</vProd>
+          <cEANTrib/>
+          <uTrib>KG</uTrib>
+          <qTrib>50.0000</qTrib>
+          <vUnTrib>42.00</vUnTrib>
+          <indTot>1</indTot>
+        </prod>
+        <imposto>
+          <ICMS>
+            <ICMS00>
+              <orig>0</orig>
+              <CST>00</CST>
+              <modBC>3</modBC>
+              <vBC>2100.00</vBC>
+              <pICMS>12.00</pICMS>
+              <vICMS>252.00</vICMS>
+            </ICMS00>
+          </ICMS>
+          <PIS>
+            <PISAliq>
+              <CST>01</CST>
+              <vBC>2100.00</vBC>
+              <pPIS>1.65</pPIS>
+              <vPIS>34.65</vPIS>
+            </PISAliq>
+          </PIS>
+          <COFINS>
+            <COFINSAliq>
+              <CST>01</CST>
+              <vBC>2100.00</vBC>
+              <pCOFINS>7.60</pCOFINS>
+              <vCOFINS>159.60</vCOFINS>
+            </COFINSAliq>
+          </COFINS>
+        </imposto>
+      </det>
+      <det nItem="2">
+        <prod>
+          <cProd>ARROZ-5KG</cProd>
+          <cEAN/>
+          <xProd>Arroz Branco Tipo 1 - Pacote 5KG</xProd>
+          <NCM>10063021</NCM>
+          <CFOP>6202</CFOP>
+          <uCom>PC</uCom>
+          <qCom>30.0000</qCom>
+          <vUnCom>28.50</vUnCom>
+          <vProd>855.00</vProd>
+          <cEANTrib/>
+          <uTrib>PC</uTrib>
+          <qTrib>30.0000</qTrib>
+          <vUnTrib>28.50</vUnTrib>
+          <indTot>1</indTot>
+        </prod>
+        <imposto>
+          <ICMS>
+            <ICMS00>
+              <orig>0</orig>
+              <CST>00</CST>
+              <modBC>3</modBC>
+              <vBC>855.00</vBC>
+              <pICMS>12.00</pICMS>
+              <vICMS>102.60</vICMS>
+            </ICMS00>
+          </ICMS>
+          <PIS>
+            <PISAliq>
+              <CST>01</CST>
+              <vBC>855.00</vBC>
+              <pPIS>1.65</pPIS>
+              <vPIS>14.11</vPIS>
+            </PISAliq>
+          </PIS>
+          <COFINS>
+            <COFINSAliq>
+              <CST>01</CST>
+              <vBC>855.00</vBC>
+              <pCOFINS>7.60</pCOFINS>
+              <vCOFINS>64.98</vCOFINS>
+            </COFINSAliq>
+          </COFINS>
+        </imposto>
+      </det>
+      <total>
+        <ICMSTot>
+          <vBC>2955.00</vBC>
+          <vICMS>354.60</vICMS>
+          <vICMSDeson>0.00</vICMSDeson>
+          <vFCP>0.00</vFCP>
+          <vBCST>0.00</vBCST>
+          <vST>0.00</vST>
+          <vFCPST>0.00</vFCPST>
+          <vFCPSTRet>0.00</vFCPSTRet>
+          <vProd>2955.00</vProd>
+          <vFrete>0.00</vFrete>
+          <vSeg>0.00</vSeg>
+          <vDesc>0.00</vDesc>
+          <vII>0.00</vII>
+          <vIPI>0.00</vIPI>
+          <vIPIDevol>0.00</vIPIDevol>
+          <vPIS>48.76</vPIS>
+          <vCOFINS>224.58</vCOFINS>
+          <vOutro>0.00</vOutro>
+          <vNF>2955.00</vNF>
+        </ICMSTot>
+      </total>
+      <transp>
+        <modFrete>0</modFrete>
+      </transp>
+      <pag>
+        <detPag>
+          <indPag>0</indPag>
+          <tPag>90</tPag>
+          <vPag>2955.00</vPag>
+        </detPag>
+      </pag>
+      <infAdic>
+        <infCpl>Devolução de mercadoria. CFOP 6202 - Devolução de compra para comercialização. Operação interestadual RS-SP com ICMS 12%. Referente NF-e Original nº 1850 de 15/10/2025.</infCpl>
+      </infAdic>
+    </infNFe>
+  </NFe>
+  <protNFe versao="4.00">
+    <infProt>
+      <tpAmb>2</tpAmb>
+      <verAplic>SVRS20251026164500</verAplic>
+      <chNFe>43251044444444444444550010000000035555555551</chNFe>
+      <dhRecbto>2025-10-26T16:50:00-03:00</dhRecbto>
+      <nProt>143250000000303</nProt>
+      <digVal>QwErTyUiOpAsDfGhJkLzXcVbNmQwErTy12345678Qw==</digVal>
+      <cStat>100</cStat>
+      <xMotivo>Autorizado o uso da NF-e</xMotivo>
+    </infProt>
+  </protNFe>
+</nfeProc>

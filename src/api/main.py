@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
 
 app = FastAPI(
-    title="API Classificação Contábil",
+    title="API Extração de Dados Contábil",
     version="1.2.0",
     description=(
         "API para classificar NF-e via workflow (LangGraph).\n"

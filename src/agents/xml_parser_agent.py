@@ -95,6 +95,16 @@ def _locate_infNFe(tree: dict[str, Any]) -> dict[str, Any] | None:
 def _sanitize_prod_for_model(prod: Any) -> dict[str, Any]:
     """Normaliza o nó `prod` para aderir às validações dos modelos.
 
+    Extrai todos os campos do produto incluindo:
+    - xProd: Descrição do produto (obrigatório)
+    - NCM: Código NCM (opcional, validado)
+    - vProd: Valor total do produto (obrigatório)
+    - qCom: Quantidade comercial (opcional, Etapa 3)
+    - vUnCom: Valor unitário comercial (opcional, Etapa 3)
+    - uCom: Unidade comercial (opcional, Etapa 3)
+    - cProd: Código do produto (opcional, Etapa 3)
+
+    Sanitizações aplicadas:
     - Remove `NCM` inválido (não 8 dígitos), permitindo `Optional[str]`
       permanecer como `None` quando necessário.
     - Garante `xProd` com valor mínimo.
@@ -109,7 +119,231 @@ def _sanitize_prod_for_model(prod: Any) -> dict[str, Any]:
     # Garantir xProd mínimo
     if not out.get("xProd"):
         out["xProd"] = "Item"
+    # Os campos adicionais (qCom, vUnCom, uCom, cProd) são extraídos automaticamente
+    # pois estão inclusos no dict(prod) copiado acima
     return out
+
+
+# ----------------- Funções de Extração de Impostos (Etapa 4) -----------------
+
+def _extract_icms(imposto_node: Any) -> dict[str, Any] | None:
+    """Extrai dados do ICMS do nó imposto, tratando variações (ICMS00, ICMS10, etc).
+
+    O ICMS pode ter diferentes situações tributárias (ICMS00, ICMS10, ICMS20, etc)
+    para Regime Normal ou ICMSSN* para Simples Nacional.
+    Esta função detecta qual variante está presente e extrai os campos relevantes,
+    incluindo CST (Regime Normal) ou CSOSN (Simples Nacional).
+
+    Returns:
+        Dicionário com campos do ICMS ou None se não encontrado.
+    """
+    icms_node = safe_get(imposto_node, "ICMS")
+    if not isinstance(icms_node, dict):
+        return None
+
+    # Possíveis variantes de ICMS
+    icms_variants = [
+        "ICMS00", "ICMS10", "ICMS20", "ICMS30", "ICMS40", "ICMS51",
+        "ICMS60", "ICMS70", "ICMS90", "ICMSSN101", "ICMSSN102",
+        "ICMSSN201", "ICMSSN202", "ICMSSN500", "ICMSSN900"
+    ]
+
+    # Encontrar qual variante está presente
+    icms_data = None
+    for variant in icms_variants:
+        variant_node = icms_node.get(variant)
+        if isinstance(variant_node, dict):
+            icms_data = variant_node
+            break
+
+    if not icms_data:
+        logger.warning("Nó ICMS encontrado mas nenhuma variante identificada: %s", icms_node.keys())
+        return None
+
+    # Extrair campos disponíveis (CST para Regime Normal, CSOSN para Simples Nacional)
+    return {
+        "CST": safe_get(icms_data, "CST"),
+        "CSOSN": safe_get(icms_data, "CSOSN"),
+        "orig": safe_get(icms_data, "orig"),
+        "vBC": safe_get(icms_data, "vBC"),
+        "pICMS": safe_get(icms_data, "pICMS"),
+        "vICMS": safe_get(icms_data, "vICMS"),
+        "modBC": safe_get(icms_data, "modBC"),
+    }
+
+
+def _extract_ipi(imposto_node: Any) -> dict[str, Any] | None:
+    """Extrai dados do IPI do nó imposto, tratando IPITrib vs IPINT.
+
+    O IPI pode estar tributado (IPITrib) ou não tributado (IPINT).
+    Caso não tributado, apenas o CST é preenchido.
+
+    Returns:
+        Dicionário com campos do IPI ou None se não encontrado.
+    """
+    ipi_node = safe_get(imposto_node, "IPI")
+    if not isinstance(ipi_node, dict):
+        return None
+
+    # Verificar IPITrib (tributado)
+    ipi_trib = ipi_node.get("IPITrib")
+    if isinstance(ipi_trib, dict):
+        return {
+            "CST": safe_get(ipi_trib, "CST"),
+            "vBC": safe_get(ipi_trib, "vBC"),
+            "pIPI": safe_get(ipi_trib, "pIPI"),
+            "vIPI": safe_get(ipi_trib, "vIPI"),
+        }
+
+    # Verificar IPINT (não tributado)
+    ipi_nt = ipi_node.get("IPINT")
+    if isinstance(ipi_nt, dict):
+        return {
+            "CST": safe_get(ipi_nt, "CST"),
+            "vBC": None,
+            "pIPI": None,
+            "vIPI": None,
+        }
+
+    logger.warning("Nó IPI encontrado mas sem IPITrib ou IPINT: %s", ipi_node.keys())
+    return None
+
+
+def _extract_pis(imposto_node: Any) -> dict[str, Any] | None:
+    """Extrai dados do PIS do nó imposto, tratando variações (PISAliq, PISNT, etc).
+
+    O PIS pode ter diferentes regimes de tributação (PISAliq, PISNT, PISQtde, etc).
+
+    Returns:
+        Dicionário com campos do PIS ou None se não encontrado.
+    """
+    pis_node = safe_get(imposto_node, "PIS")
+    if not isinstance(pis_node, dict):
+        return None
+
+    # Possíveis variantes de PIS
+    pis_variants = ["PISAliq", "PISNT", "PISQtde", "PISOutr"]
+
+    pis_data = None
+    for variant in pis_variants:
+        variant_node = pis_node.get(variant)
+        if isinstance(variant_node, dict):
+            pis_data = variant_node
+            break
+
+    if not pis_data:
+        logger.warning("Nó PIS encontrado mas nenhuma variante identificada: %s", pis_node.keys())
+        return None
+
+    return {
+        "CST": safe_get(pis_data, "CST"),
+        "vBC": safe_get(pis_data, "vBC"),
+        "pPIS": safe_get(pis_data, "pPIS"),
+        "vPIS": safe_get(pis_data, "vPIS"),
+    }
+
+
+def _extract_cofins(imposto_node: Any) -> dict[str, Any] | None:
+    """Extrai dados do COFINS do nó imposto, tratando variações (COFINSAliq, COFINSNT, etc).
+
+    O COFINS pode ter diferentes regimes de tributação (COFINSAliq, COFINSNT, COFINSQtde, etc).
+
+    Returns:
+        Dicionário com campos do COFINS ou None se não encontrado.
+    """
+    cofins_node = safe_get(imposto_node, "COFINS")
+    if not isinstance(cofins_node, dict):
+        return None
+
+    # Possíveis variantes de COFINS
+    cofins_variants = ["COFINSAliq", "COFINSNT", "COFINSQtde", "COFINSOutr"]
+
+    cofins_data = None
+    for variant in cofins_variants:
+        variant_node = cofins_node.get(variant)
+        if isinstance(variant_node, dict):
+            cofins_data = variant_node
+            break
+
+    if not cofins_data:
+        logger.warning("Nó COFINS encontrado mas nenhuma variante identificada: %s", cofins_node.keys())
+        return None
+
+    return {
+        "CST": safe_get(cofins_data, "CST"),
+        "vBC": safe_get(cofins_data, "vBC"),
+        "pCOFINS": safe_get(cofins_data, "pCOFINS"),
+        "vCOFINS": safe_get(cofins_data, "vCOFINS"),
+    }
+
+
+def _extract_impostos_item(item_node: dict[str, Any]) -> dict[str, Any] | None:
+    """Extrai todos os impostos de um item (det) da NF-e.
+
+    Consolida ICMS, IPI (opcional), PIS e COFINS de um item específico.
+
+    Args:
+        item_node: Nó 'det' do XML representando um item
+
+    Returns:
+        Dicionário com estrutura ImpostosItem ou None se impostos não encontrados
+    """
+    imposto_node = safe_get(item_node, "imposto")
+    if not isinstance(imposto_node, dict):
+        logger.warning("Nó 'imposto' não encontrado ou inválido no item")
+        return None
+
+    # Extrair cada tipo de imposto
+    icms_data = _extract_icms(imposto_node)
+    ipi_data = _extract_ipi(imposto_node)  # Opcional
+    pis_data = _extract_pis(imposto_node)
+    cofins_data = _extract_cofins(imposto_node)
+
+    # Validar campos obrigatórios
+    if not icms_data:
+        logger.warning("ICMS não encontrado no item - impostos incompletos")
+        return None
+    if not pis_data:
+        logger.warning("PIS não encontrado no item - impostos incompletos")
+        return None
+    if not cofins_data:
+        logger.warning("COFINS não encontrado no item - impostos incompletos")
+        return None
+
+    result = {
+        "icms": icms_data,
+        "pis": pis_data,
+        "cofins": cofins_data,
+    }
+
+    # IPI é opcional
+    if ipi_data:
+        result["ipi"] = ipi_data
+
+    return result
+
+
+def _extract_totais_impostos(nfe_node: dict[str, Any]) -> dict[str, Any] | None:
+    """Extrai os totais de impostos do bloco total.ICMSTot.
+
+    Args:
+        nfe_node: Nó 'infNFe' do XML
+
+    Returns:
+        Dicionário com estrutura TotaisImpostos ou None se não encontrado
+    """
+    icms_tot = safe_get(nfe_node, "total.ICMSTot")
+    if not isinstance(icms_tot, dict):
+        logger.warning("Nó 'total.ICMSTot' não encontrado")
+        return None
+
+    return {
+        "vBC": safe_get(icms_tot, "vBC"),
+        "vICMS": safe_get(icms_tot, "vICMS"),
+        "vIPI": safe_get(icms_tot, "vIPI"),
+        "vPIS": safe_get(icms_tot, "vPIS"),
+        "vCOFINS": safe_get(icms_tot, "vCOFINS"),
+    }
 
 
 # ----------------- Função Principal (com a correção) -----------------
@@ -156,21 +390,81 @@ def parse_xml(xml_path: str | Path) -> NFePayload:
     first_prod = safe_get(first_item_dict, "prod") or {}
     # --- FIM DA CORREÇÃO ---
 
-    payload_data = {
-        "cfop": safe_get(first_prod, "CFOP"), # Agora 'first_prod' terá o valor correto
-        "emitente_uf": safe_get(nfe_node, "emit.enderEmit.UF"),
-        "destinatario_uf": safe_get(nfe_node, "dest.enderDest.UF"),
-        "valor_total": safe_get(nfe_node, "total.ICMSTot.vNF"),
-        "itens": [_sanitize_prod_for_model(safe_get(item, "prod")) for item in det_list],
+    # Extrair dados completos do emitente
+    emitente_data = {
+        "xNome": safe_get(nfe_node, "emit.xNome"),
+        "CNPJ": safe_get(nfe_node, "emit.CNPJ"),
+        "IE": safe_get(nfe_node, "emit.IE"),
+        "uf": safe_get(nfe_node, "emit.enderEmit.UF"),
+        "xMun": safe_get(nfe_node, "emit.enderEmit.xMun"),
+        "xBairro": safe_get(nfe_node, "emit.enderEmit.xBairro"),
+        "xLgr": safe_get(nfe_node, "emit.enderEmit.xLgr"),
+        "nro": safe_get(nfe_node, "emit.enderEmit.nro"),
+        "CEP": safe_get(nfe_node, "emit.enderEmit.CEP"),
+        "fone": safe_get(nfe_node, "emit.enderEmit.fone"),
     }
+
+    # Extrair dados completos do destinatario
+    destinatario_data = {
+        "xNome": safe_get(nfe_node, "dest.xNome"),
+        "CNPJ": safe_get(nfe_node, "dest.CNPJ"),
+        "CPF": safe_get(nfe_node, "dest.CPF"),
+        "IE": safe_get(nfe_node, "dest.IE"),
+        "indIEDest": safe_get(nfe_node, "dest.indIEDest"),
+        "uf": safe_get(nfe_node, "dest.enderDest.UF"),
+        "xMun": safe_get(nfe_node, "dest.enderDest.xMun"),
+        "xBairro": safe_get(nfe_node, "dest.enderDest.xBairro"),
+        "xLgr": safe_get(nfe_node, "dest.enderDest.xLgr"),
+        "nro": safe_get(nfe_node, "dest.enderDest.nro"),
+        "CEP": safe_get(nfe_node, "dest.enderDest.CEP"),
+        "fone": safe_get(nfe_node, "dest.enderDest.fone"),
+    }
+
+    # Extrair impostos dos itens (Etapa 4) e CEST (Etapa 5)
+    itens_list = []
+    for item in det_list:
+        item_data = _sanitize_prod_for_model(safe_get(item, "prod"))
+        # Extrair CEST (Código de Substituição Tributária) - Etapa 5
+        cest = safe_get(item, "prod.CEST")
+        if cest:
+            item_data["CEST"] = cest
+        # Tentar extrair impostos do item
+        impostos = _extract_impostos_item(item)
+        if impostos:
+            item_data["impostos"] = impostos
+        itens_list.append(item_data)
+
+    # Extrair totais de impostos (Etapa 4)
+    totais_impostos = _extract_totais_impostos(nfe_node)
+
+    payload_data = {
+        "cfop": safe_get(first_prod, "CFOP"),
+        "emitente": emitente_data,
+        "destinatario": destinatario_data,
+        "valor_total": safe_get(nfe_node, "total.ICMSTot.vNF"),
+        "itens": itens_list,
+    }
+
+    # Adicionar totais de impostos se disponíveis (Etapa 4)
+    if totais_impostos:
+        payload_data["totais_impostos"] = totais_impostos
 
     try:
         payload = NFePayload.model_validate(payload_data)
 
+        # Determinar tipo de documento do destinatario
+        dest_doc = payload.destinatario.cnpj if payload.destinatario.cnpj else payload.destinatario.cpf
+        dest_doc_tipo = "CNPJ" if payload.destinatario.cnpj else "CPF"
+
         logger.info(
-            "NFe parse OK | cfop=%s emit_uf=%s dest_uf=%s itens=%d vtotal=%.2f",
+            "NFe parse OK | cfop=%s emitente=%s (CNPJ: %s, UF: %s) destinatario=%s (%s: %s, UF: %s) itens=%d vtotal=%.2f",
             payload.cfop,
-            payload.emitente_uf.value,
+            payload.emitente.razao_social[:30] if len(payload.emitente.razao_social) > 30 else payload.emitente.razao_social,
+            payload.emitente.cnpj,
+            payload.emitente.uf.value,
+            payload.destinatario.razao_social[:30] if len(payload.destinatario.razao_social) > 30 else payload.destinatario.razao_social,
+            dest_doc_tipo,
+            dest_doc,
             payload.destinatario_uf.value,
             len(payload.itens),
             payload.valor_total,

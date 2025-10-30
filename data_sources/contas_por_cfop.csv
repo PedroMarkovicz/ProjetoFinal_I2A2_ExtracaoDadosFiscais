@@ -1,5 +1,5 @@
 cfop,regime,conta_debito,conta_credito,justificativa_base,confianca
-5101,simples,1.1.3.01.0001,3.1.1.01.0001,CFOP 5101 (Venda de produção do estabelecimento - Simples Nacional),0.85
+5101,simples,1,2,etest,0.95
 5101,presumido,1.1.3.01.0001,3.1.1.01.0002,CFOP 5101 (Venda de produção do estabelecimento - Lucro Presumido),0.85
 5101,real,1.1.3.01.0001,3.1.1.01.0003,CFOP 5101 (Venda de produção do estabelecimento - Lucro Real),0.85
 5102,*,1.1.3.01.0001,3.1.1.02.0001,CFOP 5102 (Venda de mercadorias adquiridas ou recebidas de terceiros em operação interna),0.80
@@ -19,7 +19,7 @@ cfop,regime,conta_debito,conta_credito,justificativa_base,confianca
 6933,*,3.1.7.01.0001,1.1.3.01.0001,CFOP 6933 (Prestação de serviço tributado pelo ISSQN em operação interestadual),0.85
 5656,*,1.1.3.01.0001,3.1.4.01.0001,CFOP 5656 (Venda de mercadoria adquirida ou recebida de terceiros destinada à exportação),0.90
 6656,*,1.1.3.01.0001,3.1.4.01.0001,CFOP 6656 (Venda de mercadoria adquirida ou recebida de terceiros destinada à exportação - interestadual),0.90
-5405,*,1.1.3.01.0001,3.1.4.01.0001,Vendas para o Cadu,0.95
+5405,*,1.1.3.01.0001,3.1.4.01.0001,CFOP 5405 (Venda de mercadoria adquirida ou recebida de terceiros em operação com mercadoria sujeita ao regime de substituição tributária),0.95
 2633,*,12345,6789,justificativa,1.0
 3883,*,6789,1011,base,1.0
 2210,*,12345,67891,based 2,1.0

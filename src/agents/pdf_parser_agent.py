@@ -104,6 +104,19 @@ def _normalize_ptbr_number(s: str) -> str:
         s = s.replace('.', '').replace(',', '.')
     return s
 
+def _normalize_ptbr_number_safe(value: Any) -> Any:
+    """Normaliza números com tratamento de erros, retorna None se falhar."""
+    if value is None or value == '':
+        return None
+    if isinstance(value, (int, float)):
+        return value
+    if isinstance(value, str):
+        try:
+            return float(_normalize_ptbr_number(value))
+        except Exception:
+            return None
+    return None
+
 def _only_digits(s: str) -> str:
     return ''.join(ch for ch in (s or '') if ch.isdigit())
 
@@ -395,36 +408,177 @@ def _build_prompt() -> Any:
         "type": "object",
         "properties": {
             "cfop": {"type": "string", "pattern": "^\\d{4}$"},
-            "emitente_uf": {"type": "string", "enum": [u.value for u in UfEnum]},
-            "destinatario_uf": {"type": "string", "enum": [u.value for u in UfEnum]},
+            "emitente": {
+                "type": "object",
+                "properties": {
+                    "xNome": {"type": "string", "description": "Razão social do emitente"},
+                    "CNPJ": {"type": "string", "pattern": "^\\d{14}$", "description": "CNPJ (14 dígitos)"},
+                    "IE": {"type": ["string", "null"], "description": "Inscrição Estadual"},
+                    "uf": {"type": "string", "enum": [u.value for u in UfEnum], "description": "UF do emitente"},
+                    "xMun": {"type": ["string", "null"], "description": "Município"},
+                    "xBairro": {"type": ["string", "null"], "description": "Bairro"},
+                    "xLgr": {"type": ["string", "null"], "description": "Logradouro (rua/avenida)"},
+                    "nro": {"type": ["string", "null"], "description": "Número"},
+                    "CEP": {"type": ["string", "null"], "pattern": "^\\d{8}$", "description": "CEP (8 dígitos)"},
+                    "fone": {"type": ["string", "null"], "description": "Telefone"}
+                },
+                "required": ["xNome", "CNPJ", "uf"],
+                "additionalProperties": False
+            },
+            "destinatario": {
+                "type": "object",
+                "properties": {
+                    "xNome": {"type": "string", "description": "Razão social/nome do destinatário"},
+                    "CNPJ": {"type": ["string", "null"], "pattern": "^\\d{14}$", "description": "CNPJ (14 dígitos) - pessoa jurídica"},
+                    "CPF": {"type": ["string", "null"], "pattern": "^\\d{11}$", "description": "CPF (11 dígitos) - pessoa física"},
+                    "IE": {"type": ["string", "null"], "description": "Inscrição Estadual do DESTINATÁRIO (localizada na seção DESTINATÁRIO/REMETENTE, geralmente ao lado do campo UF)"},
+                    "indIEDest": {"type": ["string", "null"], "description": "Indicador IE (1=Contribuinte, 2=Isento, 9=Não Contribuinte)"},
+                    "uf": {"type": "string", "enum": [u.value for u in UfEnum], "description": "UF do destinatário"},
+                    "xMun": {"type": ["string", "null"], "description": "Município"},
+                    "xBairro": {"type": ["string", "null"], "description": "Bairro"},
+                    "xLgr": {"type": ["string", "null"], "description": "Logradouro (rua/avenida)"},
+                    "nro": {"type": ["string", "null"], "description": "Número"},
+                    "CEP": {"type": ["string", "null"], "pattern": "^\\d{8}$", "description": "CEP (8 dígitos)"},
+                    "fone": {"type": ["string", "null"], "description": "Telefone"}
+                },
+                "required": ["xNome", "uf"],
+                "additionalProperties": False
+            },
             "valor_total": {"type": "number"},
             "itens": {
                 "type": "array",
                 "items": {
                     "type": "object",
                     "properties": {
-                        "xProd": {"type": "string"},
-                        "NCM": {"type": ["string", "null"], "pattern": "^\\d{8}$"},
-                        "vProd": {"type": ["number", "string"]},
+                        "xProd": {"type": "string", "description": "Descrição do produto"},
+                        "NCM": {"type": ["string", "null"], "pattern": "^\\d{8}$", "description": "Código NCM (8 dígitos)"},
+                        "CEST": {"type": ["string", "null"], "pattern": "^\\d{7}$", "description": "Código CEST de Substituição Tributária (7 dígitos, se presente)"},
+                        "vProd": {"type": ["number", "string"], "description": "Valor total do produto"},
+                        "qCom": {"type": ["number", "string", "null"], "description": "Quantidade comercial"},
+                        "vUnCom": {"type": ["number", "string", "null"], "description": "Valor unitário comercial"},
+                        "uCom": {"type": ["string", "null"], "description": "Unidade comercial (ex: UN, KG, MT)"},
+                        "cProd": {"type": ["string", "null"], "description": "Código do produto"},
+                        "impostos": {
+                            "type": ["object", "null"],
+                            "description": "Impostos do item (ICMS, IPI, PIS, COFINS) - extrair se disponível no PDF",
+                            "properties": {
+                                "icms": {
+                                    "type": "object",
+                                    "properties": {
+                                        "CST": {"type": ["string", "null"], "description": "CST ICMS (2 dígitos) - para Regime Normal"},
+                                        "CSOSN": {"type": ["string", "null"], "description": "CSOSN (3 dígitos) - para Simples Nacional. Usar CST OU CSOSN, não ambos"},
+                                        "orig": {"type": ["string", "null"], "description": "Origem (0-8)"},
+                                        "vBC": {"type": ["number", "string", "null"], "description": "Base de Cálculo ICMS"},
+                                        "pICMS": {"type": ["number", "string", "null"], "description": "Alíquota ICMS (%)"},
+                                        "vICMS": {"type": ["number", "string", "null"], "description": "Valor ICMS"}
+                                    }
+                                },
+                                "ipi": {
+                                    "type": ["object", "null"],
+                                    "properties": {
+                                        "CST": {"type": ["string", "null"], "description": "CST IPI (2 dígitos)"},
+                                        "vBC": {"type": ["number", "string", "null"], "description": "Base de Cálculo IPI"},
+                                        "pIPI": {"type": ["number", "string", "null"], "description": "Alíquota IPI (%)"},
+                                        "vIPI": {"type": ["number", "string", "null"], "description": "Valor IPI"}
+                                    }
+                                },
+                                "pis": {
+                                    "type": "object",
+                                    "properties": {
+                                        "CST": {"type": ["string", "null"], "description": "CST PIS (2 dígitos)"},
+                                        "vBC": {"type": ["number", "string", "null"], "description": "Base de Cálculo PIS"},
+                                        "pPIS": {"type": ["number", "string", "null"], "description": "Alíquota PIS (%)"},
+                                        "vPIS": {"type": ["number", "string", "null"], "description": "Valor PIS"}
+                                    }
+                                },
+                                "cofins": {
+                                    "type": "object",
+                                    "properties": {
+                                        "CST": {"type": ["string", "null"], "description": "CST COFINS (2 dígitos)"},
+                                        "vBC": {"type": ["number", "string", "null"], "description": "Base de Cálculo COFINS"},
+                                        "pCOFINS": {"type": ["number", "string", "null"], "description": "Alíquota COFINS (%)"},
+                                        "vCOFINS": {"type": ["number", "string", "null"], "description": "Valor COFINS"}
+                                    }
+                                }
+                            }
+                        }
                     },
                     "required": ["xProd", "vProd"],
                     "additionalProperties": False
                 }
+            },
+            "totais_impostos": {
+                "type": ["object", "null"],
+                "description": "Totais consolidados de impostos (geralmente no rodapé da nota)",
+                "properties": {
+                    "vBC": {"type": ["number", "string", "null"], "description": "Total Base de Cálculo ICMS"},
+                    "vICMS": {"type": ["number", "string", "null"], "description": "Total ICMS"},
+                    "vIPI": {"type": ["number", "string", "null"], "description": "Total IPI"},
+                    "vPIS": {"type": ["number", "string", "null"], "description": "Total PIS"},
+                    "vCOFINS": {"type": ["number", "string", "null"], "description": "Total COFINS"}
+                }
             }
         },
-        "required": ["cfop", "emitente_uf", "destinatario_uf", "valor_total", "itens"],
+        "required": ["cfop", "emitente", "destinatario", "valor_total", "itens"],
         "additionalProperties": False
     }
 
     system = (
         "Você é um extrator de dados de DANFE (NF-e PDF) extremamente rigoroso. "
         "Extraia APENAS os campos solicitados e retorne um JSON VÁLIDO, sem comentários, sem markdown. "
+        "ATENÇÃO: A seção DESTINATÁRIO/REMETENTE contém campos específicos do destinatário. "
+        "NÃO confunda a Inscrição Estadual (IE) do EMITENTE com a IE do DESTINATÁRIO. São campos separados! "
         "Regras: "
         f"- 'cfop' deve ser string com 4 dígitos.\n"
-        f"- 'emitente_uf' e 'destinatario_uf' devem ser uma destas UFs: {ufs}.\n"
+        f"- 'emitente' é um objeto com dados do emissor:\n"
+        f"  - 'xNome': razão social (obrigatório)\n"
+        f"  - 'CNPJ': 14 dígitos (obrigatório)\n"
+        f"  - 'IE': inscrição estadual (opcional, use null se não encontrar)\n"
+        f"  - 'uf': estado do emitente - uma destas UFs: {ufs} (obrigatório)\n"
+        f"  - 'xMun': município (opcional)\n"
+        f"  - 'xBairro': bairro (opcional)\n"
+        f"  - 'xLgr': logradouro/rua (opcional)\n"
+        f"  - 'nro': número do endereço (opcional)\n"
+        f"  - 'CEP': 8 dígitos (opcional)\n"
+        f"  - 'fone': telefone (opcional)\n"
+        f"- 'destinatario' é um objeto com dados do receptor:\n"
+        f"  - 'xNome': razão social ou nome (obrigatório)\n"
+        f"  - 'CNPJ': 14 dígitos OU null (pessoa jurídica)\n"
+        f"  - 'CPF': 11 dígitos OU null (pessoa física)\n"
+        f"  - IMPORTANTE: Deve ter CPF OU CNPJ, nunca ambos! Se for pessoa física, CNPJ=null e CPF com 11 dígitos. Se jurídica, CPF=null e CNPJ com 14 dígitos.\n"
+        f"  - 'IE': inscrição estadual do DESTINATÁRIO (opcional, geralmente aparece na seção 'DESTINATÁRIO/REMETENTE' ao lado ou próximo do campo UF)\n"
+        f"  - 'indIEDest': indicador IE 1-9 (opcional)\n"
+        f"  - 'uf': estado do destinatário - uma destas UFs: {ufs} (obrigatório)\n"
+        f"  - 'xMun': município (opcional)\n"
+        f"  - 'xBairro': bairro (opcional)\n"
+        f"  - 'xLgr': logradouro/rua (opcional)\n"
+        f"  - 'nro': número do endereço (opcional)\n"
+        f"  - 'CEP': 8 dígitos (opcional)\n"
+        f"  - 'fone': telefone (opcional)\n"
         "- 'valor_total' número com ponto decimal.\n"
-        "- 'itens' é uma lista com ao menos 1 item, cada item com: 'xProd' (string), 'NCM' (8 dígitos ou null), 'vProd' (número).\n"
-        "- Se um valor não existir no documento, use null (quando permitido) ou uma string vazia para 'xProd'.\n"
+        "- 'itens' é uma lista com ao menos 1 item. Cada item deve conter:\n"
+        "  - 'xProd': descrição do produto (obrigatório)\n"
+        "  - 'NCM': código NCM com 8 dígitos (opcional, use null se não encontrar)\n"
+        "  - 'vProd': valor total do produto (obrigatório)\n"
+        "  - 'qCom': quantidade comercial (opcional, geralmente aparece na coluna 'Qtde' ou 'Quantidade')\n"
+        "  - 'vUnCom': valor unitário comercial (opcional, geralmente aparece na coluna 'Valor Unit.' ou 'Vlr. Unit.')\n"
+        "  - 'uCom': unidade comercial (opcional, ex: UN, KG, MT, PC - geralmente aparece na coluna 'Unid.' ou 'UN')\n"
+        "  - 'cProd': código do produto (opcional, geralmente aparece na coluna 'Código' ou antes da descrição)\n"
+        "  - 'impostos': objeto com impostos do item (opcional, extrair se disponível no PDF):\n"
+        "    - 'icms': CST, orig, vBC, pICMS, vICMS (buscar na tabela de impostos por item)\n"
+        "    - 'ipi': CST, vBC, pIPI, vIPI (opcional, nem todas notas têm IPI)\n"
+        "    - 'pis': CST, vBC, pPIS, vPIS (opcional, muitos PDFs não mostram PIS por item)\n"
+        "    - 'cofins': CST, vBC, pCOFINS, vCOFINS (opcional, muitos PDFs não mostram COFINS por item)\n"
+        "    ATENÇÃO: Muitos PDFs NÃO mostram impostos detalhados por item. Neste caso, deixe 'impostos': null para o item.\n"
+        "    Se o PDF mostrar apenas ICMS e IPI, inclua apenas esses campos e deixe 'pis' e 'cofins' como null ou omita-os.\n"
+        "- 'totais_impostos': objeto com totais de impostos (opcional, buscar no rodapé da nota):\n"
+        "  - 'vBC': Total Base de Cálculo ICMS\n"
+        "  - 'vICMS': Total ICMS\n"
+        "  - 'vIPI': Total IPI\n"
+        "  - 'vPIS': Total PIS\n"
+        "  - 'vCOFINS': Total COFINS\n"
+        "  Se os totais de impostos não estiverem visíveis no PDF, use null.\n"
+        "- Se um valor opcional não existir no documento, use null.\n"
         "- NUNCA inclua campos extras.\n"
         "- Saída: APENAS o JSON no formato solicitado."
     )
@@ -496,9 +650,11 @@ def _sanitize_llm_payload(raw: Dict[str, Any]) -> Dict[str, Any]:
     """Normaliza o dicionário retornado pela LLM para aderir aos modelos.
 
     - cfop: mantém somente dígitos; tenta limitar para 4 caracteres
-    - UFs: caixa alta; se inválida, mantém como está para falhar claramente
+    - emitente: objeto completo com dados do emissor (razão social, CNPJ, endereço, etc.)
+    - destinatario: objeto completo com dados do receptor (razão social, CNPJ/CPF, endereço, etc.)
     - valor_total: converte vírgula para ponto
-    - itens: garante dict; xProd obrigatório com fallback; NCM= None se não for 8 dígitos; vProd normalizado
+    - itens: garante dict; xProd obrigatório com fallback; NCM=None se não for 8 dígitos; vProd normalizado
+      Novos campos (Etapa 3): qCom, vUnCom (normalizados); uCom (uppercase); cProd (sanitizado)
     """
     out: Dict[str, Any] = {}
     # cfop
@@ -508,11 +664,158 @@ def _sanitize_llm_payload(raw: Dict[str, Any]) -> Dict[str, Any]:
         cfop_val = cfop_digits[:4]
     out['cfop'] = cfop_val
 
-    # UFs
-    emit_uf = (raw.get('emitente_uf') or '')
-    dest_uf = (raw.get('destinatario_uf') or '')
-    out['emitente_uf'] = str(emit_uf).upper() if isinstance(emit_uf, str) else emit_uf
-    out['destinatario_uf'] = str(dest_uf).upper() if isinstance(dest_uf, str) else dest_uf
+    # Emitente completo
+    emitente_raw = raw.get('emitente') or {}
+    if isinstance(emitente_raw, dict):
+        emitente_sanitized: Dict[str, Any] = {}
+        # xNome (obrigatório)
+        emitente_sanitized['xNome'] = str(emitente_raw.get('xNome', '')).strip() or 'EMITENTE NAO IDENTIFICADO'
+        # CNPJ (obrigatório) - apenas dígitos, limitado a 14
+        cnpj_raw = str(emitente_raw.get('CNPJ', '') or '')
+        cnpj_digits = ''.join(ch for ch in cnpj_raw if ch.isdigit())
+        # Limitar a 14 dígitos (pegar os últimos 14 se houver mais)
+        emitente_sanitized['CNPJ'] = cnpj_digits[-14:] if len(cnpj_digits) >= 14 else cnpj_digits
+        # IE (opcional)
+        ie_raw = emitente_raw.get('IE')
+        emitente_sanitized['IE'] = str(ie_raw).strip().upper() if ie_raw and str(ie_raw).strip() else None
+        # UF (obrigatório)
+        uf_raw = emitente_raw.get('uf', '')
+        emitente_sanitized['uf'] = str(uf_raw).upper() if isinstance(uf_raw, str) else uf_raw
+        # Campos opcionais de endereço
+        emitente_sanitized['xMun'] = str(emitente_raw.get('xMun', '') or '').strip() or None
+        emitente_sanitized['xBairro'] = str(emitente_raw.get('xBairro', '') or '').strip() or None
+        emitente_sanitized['xLgr'] = str(emitente_raw.get('xLgr', '') or '').strip() or None
+        emitente_sanitized['nro'] = str(emitente_raw.get('nro', '') or '').strip() or None
+        # CEP (opcional) - apenas dígitos
+        cep_raw = emitente_raw.get('CEP')
+        if cep_raw:
+            cep_digits = ''.join(ch for ch in str(cep_raw) if ch.isdigit())
+            emitente_sanitized['CEP'] = cep_digits if len(cep_digits) == 8 else None
+        else:
+            emitente_sanitized['CEP'] = None
+        # Telefone (opcional) - apenas dígitos
+        fone_raw = emitente_raw.get('fone')
+        if fone_raw:
+            emitente_sanitized['fone'] = ''.join(ch for ch in str(fone_raw) if ch.isdigit()) or None
+        else:
+            emitente_sanitized['fone'] = None
+
+        out['emitente'] = emitente_sanitized
+    else:
+        # Fallback se emitente não for um dicionário
+        out['emitente'] = {
+            'xNome': 'EMITENTE NAO IDENTIFICADO',
+            'CNPJ': '',
+            'IE': None,
+            'uf': '',
+            'xMun': None,
+            'xBairro': None,
+            'xLgr': None,
+            'nro': None,
+            'CEP': None,
+            'fone': None,
+        }
+
+    # Destinatario completo
+    destinatario_raw = raw.get('destinatario') or {}
+    if isinstance(destinatario_raw, dict):
+        dest_sanitized: Dict[str, Any] = {}
+        # xNome (obrigatório)
+        dest_sanitized['xNome'] = str(destinatario_raw.get('xNome', '')).strip() or 'DESTINATARIO NAO IDENTIFICADO'
+
+        # CNPJ ou CPF (mutuamente exclusivo)
+        cnpj_raw = destinatario_raw.get('CNPJ')
+        cpf_raw = destinatario_raw.get('CPF')
+
+        # Extrair apenas dígitos de ambos
+        cnpj_digits = ''.join(ch for ch in str(cnpj_raw) if ch.isdigit()) if cnpj_raw and str(cnpj_raw).strip() else ''
+        cpf_digits = ''.join(ch for ch in str(cpf_raw) if ch.isdigit()) if cpf_raw and str(cpf_raw).strip() else ''
+
+        # Limitar ao tamanho correto
+        cnpj_digits = cnpj_digits[-14:] if len(cnpj_digits) >= 14 else cnpj_digits
+        cpf_digits = cpf_digits[-11:] if len(cpf_digits) >= 11 else cpf_digits
+
+        # Decidir qual usar baseado no tamanho e presença
+        if cnpj_digits and len(cnpj_digits) >= 11:
+            # Se tem 14 dígitos, é CNPJ. Se tem 11-13, assumir CNPJ também (dados incompletos)
+            if len(cnpj_digits) == 14:
+                dest_sanitized['CNPJ'] = cnpj_digits
+                dest_sanitized['CPF'] = None
+            elif len(cnpj_digits) == 11 and not cpf_digits:
+                # Pode ser CPF, mas veio no campo CNPJ
+                dest_sanitized['CPF'] = cnpj_digits
+                dest_sanitized['CNPJ'] = None
+            else:
+                # 12-13 dígitos ou outros casos: assumir CNPJ incompleto
+                dest_sanitized['CNPJ'] = cnpj_digits
+                dest_sanitized['CPF'] = None
+        elif cpf_digits and len(cpf_digits) == 11:
+            # CPF válido
+            dest_sanitized['CPF'] = cpf_digits
+            dest_sanitized['CNPJ'] = None
+        else:
+            # Fallback: tentar qualquer número que temos
+            if cnpj_digits:
+                dest_sanitized['CNPJ'] = cnpj_digits
+                dest_sanitized['CPF'] = None
+            elif cpf_digits:
+                dest_sanitized['CPF'] = cpf_digits
+                dest_sanitized['CNPJ'] = None
+            else:
+                # Último recurso: criar um CNPJ dummy para não quebrar
+                dest_sanitized['CNPJ'] = '00000000000000'
+                dest_sanitized['CPF'] = None
+
+        # IE (opcional)
+        ie_raw = destinatario_raw.get('IE')
+        dest_sanitized['IE'] = str(ie_raw).strip().upper() if ie_raw and str(ie_raw).strip() else None
+
+        # indIEDest (opcional)
+        ind_ie_raw = destinatario_raw.get('indIEDest')
+        dest_sanitized['indIEDest'] = str(ind_ie_raw).strip() if ind_ie_raw and str(ind_ie_raw).strip() else None
+
+        # UF (obrigatório)
+        uf_raw = destinatario_raw.get('uf', '')
+        dest_sanitized['uf'] = str(uf_raw).upper() if isinstance(uf_raw, str) else uf_raw
+
+        # Campos opcionais de endereço
+        dest_sanitized['xMun'] = str(destinatario_raw.get('xMun', '') or '').strip() or None
+        dest_sanitized['xBairro'] = str(destinatario_raw.get('xBairro', '') or '').strip() or None
+        dest_sanitized['xLgr'] = str(destinatario_raw.get('xLgr', '') or '').strip() or None
+        dest_sanitized['nro'] = str(destinatario_raw.get('nro', '') or '').strip() or None
+
+        # CEP (opcional) - apenas dígitos
+        cep_raw = destinatario_raw.get('CEP')
+        if cep_raw:
+            cep_digits = ''.join(ch for ch in str(cep_raw) if ch.isdigit())
+            dest_sanitized['CEP'] = cep_digits if len(cep_digits) == 8 else None
+        else:
+            dest_sanitized['CEP'] = None
+
+        # Telefone (opcional) - apenas dígitos
+        fone_raw = destinatario_raw.get('fone')
+        if fone_raw:
+            dest_sanitized['fone'] = ''.join(ch for ch in str(fone_raw) if ch.isdigit()) or None
+        else:
+            dest_sanitized['fone'] = None
+
+        out['destinatario'] = dest_sanitized
+    else:
+        # Fallback se destinatario não for um dicionário
+        out['destinatario'] = {
+            'xNome': 'DESTINATARIO NAO IDENTIFICADO',
+            'CNPJ': None,
+            'CPF': None,
+            'IE': None,
+            'indIEDest': None,
+            'uf': '',
+            'xMun': None,
+            'xBairro': None,
+            'xLgr': None,
+            'nro': None,
+            'CEP': None,
+            'fone': None,
+        }
 
     # valor_total
     vtot = raw.get('valor_total')
@@ -543,11 +846,118 @@ def _sanitize_llm_payload(raw: Dict[str, Any]) -> Dict[str, Any]:
                 vprod = _normalize_ptbr_number(vprod)
             except Exception:
                 pass
-        norm_items.append({'xProd': xprod, 'NCM': ncm, 'vProd': vprod})
+
+        # Novos campos (Etapa 3)
+        qcom = itm.get('qCom')
+        if isinstance(qcom, str):
+            try:
+                qcom = _normalize_ptbr_number(qcom)
+            except Exception:
+                qcom = None
+        elif qcom is None or qcom == '':
+            qcom = None
+
+        vuncom = itm.get('vUnCom')
+        if isinstance(vuncom, str):
+            try:
+                vuncom = _normalize_ptbr_number(vuncom)
+            except Exception:
+                vuncom = None
+        elif vuncom is None or vuncom == '':
+            vuncom = None
+
+        ucom = itm.get('uCom')
+        if isinstance(ucom, str) and ucom.strip():
+            ucom = ucom.strip().upper()
+        else:
+            ucom = None
+
+        cprod = itm.get('cProd')
+        if isinstance(cprod, str) and cprod.strip():
+            cprod = cprod.strip()
+        else:
+            cprod = None
+
+        # Impostos (Etapa 4) - sanitizar se presentes
+        impostos_raw = itm.get('impostos')
+        impostos_sanitized = None
+        if impostos_raw and isinstance(impostos_raw, dict):
+            impostos_sanitized = {}
+
+            # ICMS
+            icms_raw = impostos_raw.get('icms')
+            if icms_raw and isinstance(icms_raw, dict):
+                impostos_sanitized['icms'] = {
+                    'CST': str(icms_raw.get('CST', '')).strip() or None,
+                    'orig': str(icms_raw.get('orig', '')).strip() or None,
+                    'vBC': _normalize_ptbr_number_safe(icms_raw.get('vBC')),
+                    'pICMS': _normalize_ptbr_number_safe(icms_raw.get('pICMS')),
+                    'vICMS': _normalize_ptbr_number_safe(icms_raw.get('vICMS')),
+                }
+
+            # IPI (opcional)
+            ipi_raw = impostos_raw.get('ipi')
+            if ipi_raw and isinstance(ipi_raw, dict):
+                impostos_sanitized['ipi'] = {
+                    'CST': str(ipi_raw.get('CST', '')).strip() or None,
+                    'vBC': _normalize_ptbr_number_safe(ipi_raw.get('vBC')),
+                    'pIPI': _normalize_ptbr_number_safe(ipi_raw.get('pIPI')),
+                    'vIPI': _normalize_ptbr_number_safe(ipi_raw.get('vIPI')),
+                }
+
+            # PIS
+            pis_raw = impostos_raw.get('pis')
+            if pis_raw and isinstance(pis_raw, dict):
+                impostos_sanitized['pis'] = {
+                    'CST': str(pis_raw.get('CST', '')).strip() or None,
+                    'vBC': _normalize_ptbr_number_safe(pis_raw.get('vBC')),
+                    'pPIS': _normalize_ptbr_number_safe(pis_raw.get('pPIS')),
+                    'vPIS': _normalize_ptbr_number_safe(pis_raw.get('vPIS')),
+                }
+
+            # COFINS
+            cofins_raw = impostos_raw.get('cofins')
+            if cofins_raw and isinstance(cofins_raw, dict):
+                impostos_sanitized['cofins'] = {
+                    'CST': str(cofins_raw.get('CST', '')).strip() or None,
+                    'vBC': _normalize_ptbr_number_safe(cofins_raw.get('vBC')),
+                    'pCOFINS': _normalize_ptbr_number_safe(cofins_raw.get('pCOFINS')),
+                    'vCOFINS': _normalize_ptbr_number_safe(cofins_raw.get('vCOFINS')),
+                }
+
+        item_dict = {
+            'xProd': xprod,
+            'NCM': ncm,
+            'vProd': vprod,
+            'qCom': qcom,
+            'vUnCom': vuncom,
+            'uCom': ucom,
+            'cProd': cprod
+        }
+
+        # Adicionar impostos se presentes
+        if impostos_sanitized:
+            item_dict['impostos'] = impostos_sanitized
+
+        norm_items.append(item_dict)
     if not norm_items:
         # Minimiza falha criando um item sintético com valor 0 se LLM não retornou nada
-        norm_items = [{'xProd': 'Item', 'NCM': None, 'vProd': 0}]
+        norm_items = [{'xProd': 'Item', 'NCM': None, 'vProd': 0, 'qCom': None, 'vUnCom': None, 'uCom': None, 'cProd': None}]
     out['itens'] = norm_items
+
+    # Totais de impostos (Etapa 4) - sanitizar se presentes
+    totais_raw = raw.get('totais_impostos')
+    if totais_raw and isinstance(totais_raw, dict):
+        totais_sanitized = {
+            'vBC': _normalize_ptbr_number_safe(totais_raw.get('vBC')),
+            'vICMS': _normalize_ptbr_number_safe(totais_raw.get('vICMS')),
+            'vIPI': _normalize_ptbr_number_safe(totais_raw.get('vIPI')),
+            'vPIS': _normalize_ptbr_number_safe(totais_raw.get('vPIS')),
+            'vCOFINS': _normalize_ptbr_number_safe(totais_raw.get('vCOFINS')),
+        }
+        # Só adicionar se pelo menos um valor estiver presente
+        if any(v is not None for v in totais_sanitized.values()):
+            out['totais_impostos'] = totais_sanitized
 
     return out
 
