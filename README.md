@@ -574,9 +574,9 @@ Este modelo de licenciamento promove:
 
 <div align="center">
 
-**Desenvolvido com Python, IA e automação contábil**
+**Desenvolvido com ❤️ usando Python, IA e uma boa dose de café ☕**
 
-**Grupo: Agente Aprende** | **Integrante: Pedro Markovicz**
+**Grupo: Agente Aprende**
 
 [![GitHub](https://img.shields.io/badge/GitHub-Profile-blue?style=flat&logo=github)](https://github.com/PedroMarkovicz)
 [![LinkedIn](https://img.shields.io/badge/LinkedIn-Profile-blue?style=flat&logo=linkedin)](https://www.linkedin.com/in/pedro-markovicz/)
